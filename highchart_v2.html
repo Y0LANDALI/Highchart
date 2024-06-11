@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Line Chart from CSV</title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+</head>
+<body>
+    <div id="container" style="width:100%; height:400px;"></div>
+
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            // URL of the CSV file
+            const csvFileUrl = '白酒行业_fitted_topic_attention_arma.csv';
+            
+            // Fetch the CSV file
+            fetch(csvFileUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(csvText => {
+                    Papa.parse(csvText, {
+                        complete: function(results) {
+                            const data = results.data;
+                            console.log('Raw Data:', data); // Debug: log the raw data
+
+                            const categories = [];
+                            const upperBound = [];
+                            const lowerBound = [];
+                            const predictedTopicHeat = [];
+
+                            // Assuming the first row is the header
+                            for (let i = 1; i < data.length; i++) {
+                                const row = data[i];
+                                console.log(`Row ${i}:`, row); // Debug: log each row
+
+                                const week = row['时间（周）'];
+                                const upper = parseFloat(row['95%置信区间上界（%）']);
+                                const lower = parseFloat(row['95%置信区间下界（%）']);
+                                const predicted = parseFloat(row['话题热度占比（%）']);
+
+                                if (week) {
+                                    categories.push(week.toString());
+                                }
+                                if (!isNaN(upper)) {
+                                    upperBound.push(upper);
+                                }
+                                if (!isNaN(lower)) {
+                                    lowerBound.push(lower);
+                                }
+                                if (!isNaN(predicted)) {
+                                    predictedTopicHeat.push(predicted);
+                                }
+                            }
+
+                            // Debugging output to check data
+                            console.log('Categories:', categories);
+                            console.log('Upper Bound:', upperBound);
+                            console.log('Lower Bound:', lowerBound);
+                            console.log('Predicted Topic Heat:', predictedTopicHeat);
+
+                            Highcharts.chart('container', {
+                                chart: {
+                                    type: 'line'
+                                },
+                                title: {
+                                    text: 'Line Chart'
+                                },
+                                xAxis: {
+                                    categories: categories
+                                },
+                                yAxis: {
+                                    title: {
+                                        text: 'Values'
+                                    }
+                                },
+                                series: [{
+                                    name: '95%置信区间上界（%）',
+                                    data: upperBound
+                                }, {
+                                    name: '95%置信区间下界（%）',
+                                    data: lowerBound
+                                }, {
+                                    name: '话题热度占比预测（%）',
+                                    data: predictedTopicHeat
+                                }],
+                                accessibility: {
+                                    enabled: false
+                                }
+                            });
+                        },
+                        header: true,
+                        dynamicTyping: true,
+                        skipEmptyLines: true
+                    });
+                })
+                .catch(error => console.error('Error fetching the CSV file:', error));
+        });
+    </script>
+</body>
+</html>
